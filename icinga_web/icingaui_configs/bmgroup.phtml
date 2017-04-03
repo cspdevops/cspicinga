@@ -1,0 +1,277 @@
+<?php
+use Icinga\Module\Monitoring\Web\Widget\StateBadges;
+/** @var \Icinga\Module\Monitoring\DataView\Hostgroup $hostgroups */
+if (! $this->compact): ?>
+<div class="controls">
+    <?= $tabs ?>
+    <div class="grid">
+        <?= $this->sortBox ?>
+        <?= $this->limiter ?>
+        <?= $this->paginator ?>
+    </div>
+    <?= $this->filterEditor ?>
+</div>
+<?php endif ?>
+
+<div class="content">
+<?php if (! $hostgroups->hasResult()): ?>
+    <p><?= $this->translate('No Server Groups found matching the filter.') ?></p>
+</div>
+<?php return; endif ?>
+<table class="table-row-selectable common-table" data-base-target="_next">
+<thead>
+<tr>
+    <th></th>
+    <th><?= $this->translate('Server Group') ?></th>
+    <th><?= $this->translate('Server Status') ?></th>
+    <th><?= $this->translate('Commands') ?></th>
+    <th><?= $this->translate('Command Status') ?></th>
+</tr>
+</thead>
+<tbody>
+<?php foreach ($hostgroups->peekAhead($this->compact) as $hostgroup): ?>
+    <tr>
+        <td class="count-col">
+            <span class="badge"><?= $hostgroup->hosts_total ?></span>
+        </td>
+        <th>
+            <?= $this->qlink(
+                $hostgroup->hostgroup_alias,
+                'monitoring/list/hosts',
+                array('hostgroup_name' => $hostgroup->hostgroup_name),
+                array('title' => sprintf(
+                    $this->translate('List all servers in the group "%s"'),
+                    $hostgroup->hostgroup_alias
+                ))
+            ) ?>
+        </th>
+        <td>
+            <?php
+            $stateBadges = new StateBadges();
+            $stateBadges
+                ->setUrl('monitoring/list/hosts')
+                ->add(
+                    StateBadges::STATE_UP,
+                    $hostgroup->hosts_up,
+                    array(
+                        'host_state'        => 0,
+                        'hostgroup_name'    => $hostgroup->hostgroup_name,
+                        'sort'              => 'host_severity'
+                    ),
+                    'List %u server that is currently in state UP in the server group "%s"',
+                    'List %u servers which are currently in state UP in the server group "%s"',
+                    array($hostgroup->hosts_up, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_DOWN,
+                    $hostgroup->hosts_down_unhandled,
+                    array(
+                        'host_state'        => 1,
+                        'host_acknowledged' => 0,
+                        'host_in_downtime'  => 0,
+                        'hostgroup_name'    => $hostgroup->hostgroup_name,
+                        'sort'              => 'host_severity'
+                    ),
+                    'List %u server that is currently in state DOWN in the server group "%s"',
+                    'List %u servers which are currently in state DOWN in the server group "%s"',
+                    array($hostgroup->hosts_down_unhandled, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_DOWN_HANDLED,
+                    $hostgroup->hosts_down_handled,
+                    array(
+                        'host_state'      => 1,
+                        'host_handled'    => 1,
+                        'hostgroup_name'  => $hostgroup->hostgroup_name,
+                        'sort'            => 'host_severity'
+                    ),
+                    'List %u server that is currently in state DOWN (Acknowledged) in the server group "%s"',
+                    'List %u servers which are currently in state DOWN (Acknowledged) in the server group "%s"',
+                    array($hostgroup->hosts_down_handled, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_UNREACHABLE,
+                    $hostgroup->hosts_unreachable_unhandled,
+                    array(
+                        'host_state'        => 2,
+                        'host_acknowledged' => 0,
+                        'host_in_downtime'  => 0,
+                        'hostgroup_name'    => $hostgroup->hostgroup_name,
+                        'sort'              => 'host_severity'
+                    ),
+                    'List %u server that is currently in state UNREACHABLE in the server group "%s"',
+                    'List %u servers which are currently in state UNREACHABLE in the server group "%s"',
+                    array($hostgroup->hosts_unreachable_unhandled, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_UNREACHABLE_HANDLED,
+                    $hostgroup->hosts_unreachable_handled,
+                    array(
+                        'host_state'      => 2,
+                        'host_handled'    => 1,
+                        'hostgroup_name'  => $hostgroup->hostgroup_name,
+                        'sort'            => 'host_severity'
+                    ),
+                    'List %u server that is currently in state UNREACHABLE (Acknowledged) in the server group "%s"',
+                    'List %u servers which are currently in state UNREACHABLE (Acknowledged) in the server group "%s"',
+                    array($hostgroup->hosts_unreachable_handled, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_PENDING,
+                    $hostgroup->hosts_pending,
+                    array(
+                        'host_state'        => 99,
+                        'hostgroup_name'    => $hostgroup->hostgroup_name,
+                        'sort'              => 'host_severity'
+                    ),
+                    'List %u server that is currently in state PENDING in the server group "%s"',
+                    'List %u servers which are currently in state PENDING in the server group "%s"',
+                    array($hostgroup->hosts_pending, $hostgroup->hostgroup_alias)
+                );
+            echo $stateBadges->render();
+            ?>
+        </td>
+        <td class="count-col">
+            <?= $this->qlink(
+                $hostgroup->services_total,
+                'monitoring/list/services',
+                array('hostgroup_name' => $hostgroup->hostgroup_name),
+                array('title' => sprintf(
+                    $this->translate('List all commands of all functions in network service group "%s"'),
+                    $hostgroup->hostgroup_alias
+                ), 'class' => 'badge')
+            ) ?>
+        </td>
+        <td>
+            <?php
+            $stateBadges = new StateBadges();
+            $stateBadges
+                ->setUrl('monitoring/list/services')
+                ->add(
+                    StateBadges::STATE_OK,
+                    $hostgroup->services_ok,
+                    array(
+                        'service_state'     => 0,
+                        'hostgroup_name'    => $hostgroup->hostgroup_name,
+                        'sort'              => 'service_severity'
+                    ),
+                    'List %u command that is currently in state OK on functions in the server group "%s"',
+                    'List %u commands which are currently in state OK on functions in the server group "%s"',
+                    array($hostgroup->services_ok, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_CRITICAL,
+                    $hostgroup->services_critical_unhandled,
+                    array(
+                        'service_state'         => 2,
+                        'service_acknowledged'  => 0,
+                        'service_in_downtime'   => 0,
+                        'host_problem'          => 0,
+                        'hostgroup_name'        => $hostgroup->hostgroup_name,
+                        'sort'                  => 'service_severity'
+                    ),
+                    'List %u command that is currently in state CRITICAL on functions in the server group "%s"',
+                    'List %u commands which are currently in state CRITICAL on functions in the server group "%s"',
+                    array($hostgroup->services_critical_unhandled, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_CRITICAL_HANDLED,
+                    $hostgroup->services_critical_handled,
+                    array(
+                        'service_state'     => 2,
+                        'service_handled'   => 1,
+                        'hostgroup_name'    => $hostgroup->hostgroup_name,
+                        'sort'              => 'service_severity'
+                    ),
+                    'List %u command that is currently in state CRITICAL (Acknowledged) on functions in the server group "%s"',
+                    'List %u commands which are currently in state CRITICAL (Acknowledged) on functions in the server group "%s"',
+                    array($hostgroup->services_critical_unhandled, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_UNKNOWN,
+                    $hostgroup->services_unknown_unhandled,
+                    array(
+                        'service_state'         => 3,
+                        'service_acknowledged'  => 0,
+                        'service_in_downtime'   => 0,
+                        'host_problem'          => 0,
+                        'hostgroup_name'        => $hostgroup->hostgroup_name,
+                        'sort'                  => 'service_severity'
+                    ),
+                    'List %u command that is currently in state UNKNOWN on functions in the server group "%s"',
+                    'List %u commands which are currently in state UNKNOWN on functions in the server group "%s"',
+                    array($hostgroup->services_unknown_unhandled, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_UNKNOWN_HANDLED,
+                    $hostgroup->services_unknown_handled,
+                    array(
+                        'service_state'     => 3,
+                        'service_handled'   => 1,
+                        'hostgroup_name'    => $hostgroup->hostgroup_name,
+                        'sort'              => 'service_severity'
+                    ),
+                    'List %u command that is currently in state UNKNOWN (Acknowledged) on functions in the server group "%s"',
+                    'List %u commands which are currently in state UNKNOWN (Acknowledged) on functions in the server group "%s"',
+                    array($hostgroup->services_unknown_handled, $hostgroup->hostgroup_alias)
+
+                )
+                ->add(
+                    StateBadges::STATE_WARNING,
+                    $hostgroup->services_warning_unhandled,
+                    array(
+                        'service_state'         => 1,
+                        'service_acknowledged'  => 0,
+                        'service_in_downtime'   => 0,
+                        'host_problem'          => 0,
+                        'hostgroup_name'        => $hostgroup->hostgroup_name,
+                        'sort'                  => 'service_severity'
+                    ),
+                    'List %u command that is currently in state WARNING on functions in the server group "%s"',
+                    'List %u commands which are currently in state WARNING on functions in the server group "%s"',
+                    array($hostgroup->services_warning_unhandled, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_WARNING_HANDLED,
+                    $hostgroup->services_warning_handled,
+                    array(
+                        'service_state'     => 1,
+                        'service_handled'   => 1,
+                        'hostgroup_name'    => $hostgroup->hostgroup_name,
+                        'sort'              => 'service_severity'
+                    ),
+                    'List %u command that is currently in state WARNING (Acknowledged) on functions in the server group "%s"',
+                    'List %u commands which are currently in state WARNING (Acknowledged) on functions in the server group "%s"',
+                    array($hostgroup->services_warning_handled, $hostgroup->hostgroup_alias)
+                )
+                ->add(
+                    StateBadges::STATE_PENDING,
+                    $hostgroup->services_pending,
+                    array(
+                        'service_state'     => 99,
+                        'hostgroup_name'    => $hostgroup->hostgroup_name,
+                        'sort'              => 'service_severity'
+                    ),
+                    'List %u command that is currently in state PENDING on functions in the server group "%s"',
+                    'List %u commands which are currently in state PENDING on functions in the server group "%s"',
+                    array($hostgroup->services_pending, $hostgroup->hostgroup_alias)
+                );
+            echo $stateBadges->render();
+            ?>
+        </td>
+    </tr>
+<?php endforeach ?>
+</tbody>
+</table>
+<?php if ($hostgroups->hasMore()): ?>
+<?= $this->qlink(
+    $this->translate('Show More'),
+    $this->url()->without(array('view', 'limit')),
+    null,
+    array(
+        'data-base-target'    => '_next',
+        'class'               => 'pull-right action-link'
+    )
+) ?>
+<?php endif ?>
+</div>
